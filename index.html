@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stego Arena — can a model find what another hid?</title>
+<meta name="description" content="A hide-and-seek arena for image steganography: one model hides a message in a picture, another sees only the raster and tries to find it." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="tag">Steganography arena</span>
+    <h1>Can a model find<br />what another model <em>hid</em>?</h1>
+    <p class="lead">One model draws a picture with a secret inside. The picture is rasterized, metadata stripped, and passed through a robustness gauntlet. A fresh model sees only the pixels and has to say what is hidden.</p>
+    <p class="sub">Raster-only · paired controls · exact-match scoring · adaptive rounds · model leaderboard</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card" id="connect-card">
+    <div class="row">
+      <div class="grow">
+        <h2>1. Connect your Pollen</h2>
+        <p class="muted">Bring your own Pollen. The key is stored in this tab only and sent only to <code>gen.pollinations.ai</code>.</p>
+      </div>
+      <div class="keybox">
+        <input id="key" type="password" placeholder="sk_…" autocomplete="off" spellcheck="false" />
+        <button id="connect" class="primary">Connect</button>
+      </div>
+    </div>
+    <p id="connect-status" class="status">Not connected. Get a key at <a href="https://enter.pollinations.ai/keys" target="_blank" rel="noopener">enter.pollinations.ai/keys</a>.</p>
+  </section>
+
+  <section class="card" id="setup-card">
+    <h2>2. Set the round</h2>
+    <div class="grid">
+      <label>Secret phrase
+        <span class="inline">
+          <input id="secret" type="text" value="amber lantern over quiet water" maxlength="80" />
+          <button id="dice" class="ghost" title="Random phrase">↻</button>
+        </span>
+      </label>
+      <label>Hider model (draws the SVG)
+        <select id="hider"></select>
+      </label>
+      <label>Seeker model (sees only the PNG)
+        <select id="seeker"></select>
+      </label>
+      <label>Attempts per secret
+        <select id="attempts">
+          <option value="1">1 — single shot</option>
+          <option value="2">2 — one retry with feedback</option>
+          <option value="3" selected>3 — adaptive</option>
+        </select>
+      </label>
+    </div>
+
+    <fieldset>
+      <legend>Robustness gauntlet (applied before the seeker sees it)</legend>
+      <label class="check"><input type="checkbox" id="t-jpeg" checked /> JPEG re-encode (q=0.72)</label>
+      <label class="check"><input type="checkbox" id="t-resize" checked /> Downscale 72% and back</label>
+      <label class="check"><input type="checkbox" id="t-crop" /> Crop 3% edges</label>
+      <label class="check"><input type="checkbox" id="t-bright" /> Brightness shift</label>
+    </fieldset>
+
+    <div class="row">
+      <label class="check"><input type="checkbox" id="control" checked /> Also draw a paired control image with no secret (measures false alarms)</label>
+    </div>
+
+    <div class="row">
+      <p id="estimate" class="muted">Cost estimate appears after connect.</p>
+      <button id="run" class="primary big" disabled>Run round</button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="stage-card">
+    <h2>3. Round</h2>
+    <div id="log" class="log"></div>
+    <div class="images">
+      <figure>
+        <figcaption>Hider output → rasterized, after the gauntlet</figcaption>
+        <img id="img-secret" alt="Image with a hidden message" />
+      </figure>
+      <figure id="control-fig" class="hidden">
+        <figcaption>Control — same brief, nothing hidden</figcaption>
+        <img id="img-control" alt="Control image with no hidden message" />
+      </figure>
+    </div>
+    <div id="verdict" class="verdict"></div>
+    <div class="row">
+      <button id="again" class="ghost">New secret</button>
+      <button id="human" class="ghost">Hunt this one yourself</button>
+      <button id="export" class="ghost">Export dataset (JSON)</button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="human-card">
+    <h2>Human hunt</h2>
+    <p class="muted">The same image the model saw. Is there a message in it?</p>
+    <img id="img-human" alt="Image for the human round" />
+    <div class="row">
+      <input id="human-text" type="text" placeholder="Type what you think is hidden (or leave empty)" />
+      <button id="human-submit" class="primary">Submit guess</button>
+    </div>
+    <div id="human-verdict" class="verdict"></div>
+  </section>
+
+  <section class="card" id="board-card">
+    <div class="row">
+      <h2>Leaderboard <span class="muted small">— from rounds run in this browser</span></h2>
+      <div>
+        <button id="copy" class="ghost">Copy table</button>
+        <button id="clear" class="ghost">Clear</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table id="board">
+        <thead>
+          <tr><th>Hider → Seeker</th><th>Rounds</th><th>Exact</th><th>Partial</th><th>Missed</th><th>False alarms</th><th>Seeker win rate</th><th>Elo (H / S)</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted small">A seeker wins on exact recovery, draws on a partial, loses on a miss. The hider wins when the seeker misses. False alarms count against the seeker on control images.</p>
+  </section>
+
+  <footer>
+    <p>Built for <a href="https://github.com/pollinations/pollinations/issues/18367">quest #18367</a> · inspired by <a href="https://www.lesswrong.com/posts/WHEQps5PK8LrrcTAb/how-does-fable-5-1-hide-messages-in-images" target="_blank" rel="noopener">the Fable 5.1 hidden-message experiment</a> · <a href="https://github.com/SvirepyiBambr/stego-arena">source</a> · MIT</p>
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
