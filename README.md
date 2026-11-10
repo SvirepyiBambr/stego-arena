@@ -19,7 +19,9 @@ A hide-and-seek arena for image steganography, built on Pollinations. One model 
 
 ## Use
 
-1. Open the page, paste a Pollinations key (`sk_…`) from https://enter.pollinations.ai/keys. The key stays in the tab.
+1. Open the page and press **Pollinations Connect**. The consent screen approves a scoped key with a
+   10 Pollen budget and a 7 day expiry; the [`@pollinations/ui` Connect component](https://github.com/pollinations/pollinations/blob/main/BRING_YOUR_OWN_POLLEN.md)
+   keeps it in `sessionStorage` for the tab, so the app never asks for a pasted key or stores one itself.
 2. Pick a hider model (draws the SVG) and a seeker model (must accept image input).
 3. Enter a secret phrase, choose the gauntlet and the number of attempts, press **Run round**.
 4. Watch the rasterized image, the seeker's JSON answer and the verdict. Export the dataset to reproduce the table.

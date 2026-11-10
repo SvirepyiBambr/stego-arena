@@ -25,11 +25,11 @@
         <p class="muted">Bring your own Pollen. The key is stored in this tab only and sent only to <code>gen.pollinations.ai</code>.</p>
       </div>
       <div class="keybox">
-        <input id="key" type="password" placeholder="sk_…" autocomplete="off" spellcheck="false" />
-        <button id="connect" class="primary">Connect</button>
+        <polli-connect app-key="pk_osguTkWvmWsOllrn" budget="10" expiry="7"></polli-connect>
       </div>
     </div>
-    <p id="connect-status" class="status">Not connected. Get a key at <a href="https://enter.pollinations.ai/keys" target="_blank" rel="noopener">enter.pollinations.ai/keys</a>.</p>
+    <p id="connect-status" class="status">Not connected. Connect approves a key capped at 10 Pollen for 7 days; it stays in this tab.
+    <a href="https://enter.pollinations.ai/keys" target="_blank" rel="noopener">Manage keys</a>.</p>
   </section>
 
   <section class="card" id="setup-card">
@@ -129,6 +129,7 @@
     <p>Powered by <a href="https://pollinations.ai/?ref=badge">Pollinations</a> · built for <a href="https://github.com/pollinations/pollinations/issues/18367">quest #18367</a> · inspired by <a href="https://www.lesswrong.com/posts/WHEQps5PK8LrrcTAb/how-does-fable-5-1-hide-messages-in-images" target="_blank" rel="noopener">the Fable 5.1 hidden-message experiment</a> · <a href="https://github.com/SvirepyiBambr/stego-arena">source</a> · MIT</p>
   </footer>
 </main>
+<script defer src="https://cdn.jsdelivr.net/npm/@pollinations/ui@0.1.0-alpha.20/dist/connect.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

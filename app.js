@@ -141,15 +141,16 @@ async function chat(model, messages, maxTokens = 4000, temperature = 0.8) {
   return (content || "").trim();
 }
 
+const connectEl = document.querySelector("polli-connect");
+
 async function connect() {
-  const key = $("key").value.trim();
+  const key = connectEl?.apiKey || null;
   const status = $("connect-status");
-  if (!key) { status.textContent = "Paste a key first."; status.className = "status err"; return; }
+  if (!key) { status.textContent = "Connect with Pollinations first."; status.className = "status err"; return; }
   status.textContent = "Checking key and loading models…";
   status.className = "status";
   try {
     state.key = key;
-    sessionStorage.setItem("stego-key", key);
     const models = await api("/models");
     state.models = models;
     fillModels(models);
@@ -472,8 +473,16 @@ function judgeHuman() {
 load();
 renderBoard();
 
-$("connect").addEventListener("click", connect);
-$("key").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+connectEl.addEventListener("change", () => {
+  if (connectEl.apiKey) connect();
+  else {
+    state.key = "";
+    $("connect-status").textContent = "Disconnected. Connect with Pollinations to run a round.";
+    $("connect-status").className = "status";
+    $("run").disabled = true;
+  }
+});
+window.addEventListener("load", () => { if (connectEl.apiKey) connect(); });
 $("dice").addEventListener("click", () => { $("secret").value = randomPhrase(); });
 $("run").addEventListener("click", runRound);
 $("again").addEventListener("click", () => { $("secret").value = randomPhrase(); runRound(); });
@@ -493,6 +502,4 @@ for (const id of ["hider", "seeker", "control", "t-jpeg", "t-resize", "t-crop", 
   $(id).addEventListener("change", estimate);
 }
 
-// restore key for this tab
-const savedKey = sessionStorage.getItem("stego-key");
-if (savedKey) { $("key").value = savedKey; connect(); }
+// The Connect component restores its scoped key for this tab on load.
