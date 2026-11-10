@@ -1,5 +1,6 @@
 // Live round against the deployed Stego Arena, via Chrome DevTools Protocol.
 // Usage: POLL_KEY=sk_... node tools/live-test.mjs
+// Knobs: SECRET, HIDER, SEEKER, ATTEMPTS, GAUNTLET=jpeg,resize, CONTROL=0.
 import { spawn } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -66,22 +67,47 @@ await cdp("Page.enable");
 await cdp("Runtime.enable");
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1200, height: 1600, deviceScaleFactor: 1, mobile: false });
 
-// Load once, inject the key into this tab, reload: the app auto-connects.
+// Load once, then hand the key straight to the Connect component: the
+// consent screen itself needs a human, the component just exposes the key.
 await cdp("Page.navigate", { url: URL });
-await sleep(2500);
-await evaluate(`sessionStorage.setItem('stego-key', ${JSON.stringify(KEY)}); location.reload(); true`);
+await sleep(3000);
+const injected = await evaluate(`(() => {
+  const el = document.querySelector('polli-connect');
+  if (!el) return 'no polli-connect element';
+  el.apiKey = ${JSON.stringify(KEY)};
+  el.dispatchEvent(new Event('change'));
+  return 'ok';
+})()`);
+console.log("INJECT:", injected);
 const connected = await waitFor(`document.getElementById('connect-status')?.textContent.includes('Connected') && document.getElementById('connect-status').textContent`, 120000);
 console.log("CONNECTED:", connected);
 
-// A secret that is easy to verify by eye, and a single shot with the full gauntlet.
+const SECRET = process.env.SECRET || "red fox";
+const HIDER = process.env.HIDER || "";
+const SEEKER = process.env.SEEKER || "";
+const ATTEMPTS = process.env.ATTEMPTS || "1";
+const GAUNTLET = (process.env.GAUNTLET ?? "jpeg,resize").split(",").filter(Boolean);
+const CONTROL = process.env.CONTROL !== "0";
+
 await evaluate(`
-  document.getElementById('secret').value = 'amber lantern over quiet water';
-  document.getElementById('attempts').value = '1';
-  document.getElementById('control').checked = true;
+  document.getElementById('secret').value = ${JSON.stringify(SECRET)};
+  document.getElementById('attempts').value = ${JSON.stringify(ATTEMPTS)};
+  document.getElementById('control').checked = ${CONTROL};
+  for (const id of ['t-jpeg','t-resize','t-crop','t-bright']) {
+    document.getElementById(id).checked = ${JSON.stringify(GAUNTLET)}.includes(id.slice(2));
+  }
+  ${HIDER ? `document.getElementById('hider').value = ${JSON.stringify(HIDER)};` : ""}
+  ${SEEKER ? `document.getElementById('seeker').value = ${JSON.stringify(SEEKER)};` : ""}
   document.getElementById('run').click(); true
 `);
 
-const verdict = await waitFor(`(() => { const t = document.getElementById('verdict').textContent.trim(); return t && !t.includes('Round failed') ? t : ''; })()`, 420000);
+let verdict;
+try {
+  verdict = await waitFor(`document.getElementById('verdict').textContent.trim()`, 900000);
+} catch (e) {
+  console.log("TIMEOUT; page log so far:\n" + await evaluate(`document.getElementById('log').textContent`));
+  ws.close(); chrome.kill("SIGKILL"); throw e;
+}
 const logText = await evaluate(`document.getElementById('log').textContent`);
 
 // Full-page screenshot.
